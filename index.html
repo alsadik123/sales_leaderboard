@@ -1,146 +1,148 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sales Leaderboard</title>
+  <title>Leaderboard</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
-      background-color: #ffffff;
-      color: #000000;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    .last-updated {
-      text-align: center;
-      font-size: 0.9em;
-      color: #555;
-      margin-bottom: 30px;
-    }
-    #searchBar {
-      display: block;
-      margin: 0 auto 20px auto;
-      padding: 8px;
-      width: 300px;
-      font-size: 16px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      text-align: left;
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-    }
-    th {
-      cursor: pointer;
-    }
-    tr:hover {
-      background-color: #f2f2f2;
-    }
-    .table-container {
-      max-height: 600px;
-      overflow-y: auto;
-    }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f9f9f9; }
+    h1 { text-align: center; }
+    .tabs { display: flex; justify-content: center; margin-bottom: 20px; }
+    .tab { margin: 0 10px; padding: 10px 20px; background: #ddd; border-radius: 5px; cursor: pointer; }
+    .tab.active { background: #4CAF50; color: white; }
+    #search { width: 100%; padding: 10px; margin-bottom: 20px; font-size: 16px; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { cursor: pointer; background: #f1f1f1; }
+    #last-updated { text-align: center; margin-top: 20px; font-size: 14px; color: #777; }
   </style>
 </head>
 <body>
 
-  <h1>Sales Leaderboard</h1>
-  <div class="last-updated">Last updated: <span id="lastUpdated"></span></div>
+<h1>Leaderboard</h1>
 
-  <input type="text" id="searchBar" placeholder="Search for a name...">
+<div class="tabs">
+  <div class="tab active" onclick="showTab('sales')">Sales Ranking</div>
+  <div class="tab" onclick="showTab('dsm')">DSM</div>
+</div>
 
-  <div class="table-container">
-    <table id="leaderboard">
-      <thead>
-        <tr>
-          <th onclick="sortTable(0)">Rank</th>
-          <th onclick="sortTable(1)">Name</th>
-          <th onclick="sortTable(2)">Sales Value</th>
-          <th onclick="sortTable(3)">Deficit to Win</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>1</td>
-          <td>Jane Doe</td>
-          <td>50000</td>
-          <td>0</td>
-        </tr>
-        <!-- More rows here -->
-      </tbody>
-    </table>
-  </div>
+<input type="text" id="search" placeholder="Search by Name or Code..." onkeyup="searchTable()">
+
+<div id="sales" class="table-container">
+<table id="salesTable">
+  <thead>
+    <tr>
+      <th onclick="sortTable(0)">Region</th>
+      <th onclick="sortTable(1)">DSM</th>
+      <th onclick="sortTable(2)">Code</th>
+      <th onclick="sortTable(3)">Name</th>
+      <th onclick="sortTable(4)">Sales Quantity</th>
+      <th onclick="sortTable(5)">Remaining for Gift Voucher</th>
+      <th onclick="sortTable(6)">Remaining for Fan</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>East</td>
+      <td>John Doe</td>
+      <td>1001</td>
+      <td>Jane Smith</td>
+      <td>120</td>
+      <td>30</td>
+      <td>50</td>
+    </tr>
+    <!-- Add more rows here -->
+  </tbody>
+</table>
+</div>
+
+<div id="dsm" class="table-container" style="display:none">
+<table id="dsmTable">
+  <thead>
+    <tr>
+      <th onclick="sortTable(0, 'dsmTable')">Region</th>
+      <th onclick="sortTable(1, 'dsmTable')">DSM</th>
+      <th onclick="sortTable(2, 'dsmTable')">Code</th>
+      <th onclick="sortTable(3, 'dsmTable')">Name</th>
+      <th onclick="sortTable(4, 'dsmTable')">Sales Quantity</th>
+      <th onclick="sortTable(5, 'dsmTable')">Remaining for Gift Voucher</th>
+      <th onclick="sortTable(6, 'dsmTable')">Remaining for Fan</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>North</td>
+      <td>Mary Lane</td>
+      <td>2002</td>
+      <td>Bob Brown</td>
+      <td>90</td>
+      <td>20</td>
+      <td>60</td>
+    </tr>
+    <!-- Add more rows here -->
+  </tbody>
+</table>
+</div>
+
+<div id="last-updated">Last updated: <span id="date"></span></div>
 
 <script>
-const lastUpdated = new Date();
-document.getElementById("lastUpdated").textContent = lastUpdated.toLocaleDateString();
+function showTab(tabName) {
+  document.getElementById('sales').style.display = (tabName === 'sales') ? 'block' : 'none';
+  document.getElementById('dsm').style.display = (tabName === 'dsm') ? 'block' : 'none';
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => tab.classList.remove('active'));
+  tabs[tabName === 'sales' ? 0 : 1].classList.add('active');
+}
 
-const searchBar = document.getElementById('searchBar');
-searchBar.addEventListener('keyup', function() {
-  const searchTerm = this.value.toLowerCase();
-  const rows = document.querySelectorAll('#leaderboard tbody tr');
-
-  rows.forEach(row => {
-    const cells = row.querySelectorAll('td');
-    const name = cells[1].textContent.toLowerCase();
-    row.style.display = name.includes(searchTerm) ? '' : 'none';
-  });
-});
-
-function sortTable(n) {
-  const table = document.getElementById("leaderboard");
-  let switching = true;
-  let dir = "asc";
-  let switchcount = 0;
-
+function sortTable(n, tableId = 'salesTable') {
+  var table = document.getElementById(tableId);
+  var switching = true, shouldSwitch, i;
+  var dir = "asc", switchcount = 0;
   while (switching) {
     switching = false;
-    const rows = table.rows;
-    for (let i = 1; i < (rows.length - 1); i++) {
-      let shouldSwitch = false;
-      const x = rows[i].getElementsByTagName("TD")[n];
-      const y = rows[i + 1].getElementsByTagName("TD")[n];
-
-      let xContent = x.textContent || x.innerText;
-      let yContent = y.textContent || y.innerText;
-
-      if (!isNaN(xContent) && !isNaN(yContent)) {
-        xContent = parseFloat(xContent);
-        yContent = parseFloat(yContent);
-      }
-
-      if (dir === "asc") {
-        if (xContent > yContent) {
-          shouldSwitch = true;
-          break;
-        }
-      } else if (dir === "desc") {
-        if (xContent < yContent) {
-          shouldSwitch = true;
-          break;
-        }
+    var rows = table.rows;
+    for (i = 1; i < (rows.length - 1); i++) {
+      shouldSwitch = false;
+      var x = rows[i].getElementsByTagName("TD")[n];
+      var y = rows[i + 1].getElementsByTagName("TD")[n];
+      if ((dir == "asc" && x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) || 
+          (dir == "desc" && x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase())) {
+        shouldSwitch = true;
+        break;
       }
     }
     if (shouldSwitch) {
       rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
       switching = true;
       switchcount++;
-    } else {
-      if (switchcount === 0 && dir === "asc") {
-        dir = "desc";
-        switching = true;
-      }
+    } else if (switchcount == 0 && dir == "asc") {
+      dir = "desc";
+      switching = true;
     }
   }
 }
+
+function searchTable() {
+  var input = document.getElementById("search").value.toLowerCase();
+  ['salesTable', 'dsmTable'].forEach(id => {
+    var table = document.getElementById(id);
+    var tr = table.getElementsByTagName("tr");
+    for (var i = 1; i < tr.length; i++) {
+      var code = tr[i].getElementsByTagName("td")[2];
+      var name = tr[i].getElementsByTagName("td")[3];
+      if (code && name) {
+        var codeTxt = code.textContent || code.innerText;
+        var nameTxt = name.textContent || name.innerText;
+        tr[i].style.display = (codeTxt.toLowerCase().indexOf(input) > -1 || nameTxt.toLowerCase().indexOf(input) > -1) ? "" : "none";
+      }
+    }
+  });
+}
+
+// Set today's date
+var today = new Date();
+document.getElementById("date").innerText = today.toLocaleDateString();
 </script>
 
 </body>
