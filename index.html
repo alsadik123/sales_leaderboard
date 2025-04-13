@@ -4,82 +4,124 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales Leaderboard</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
-        h1 { text-align: center; }
-        .search-box { text-align: center; margin-bottom: 20px; }
-        input[type="text"] { padding: 8px; width: 300px; }
-        table { width: 100%; border-collapse: collapse; background: #fff; }
-        th, td { padding: 12px; text-align: center; border: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
-        .last-updated { text-align: center; margin-top: 20px; font-size: 0.9em; color: #555; }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body>
-    <h1>Sales Leaderboard</h1>
-    <div class="search-box">
-        <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search by Name or Code...">
-    </div>
-    <table id="leaderboard">
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>Region</th>
-                <th>DSM</th>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Sales Quantity</th>
-                <th>Remaining for Gift Voucher</th>
-                <th>Remaining for Fan</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
-    <div class="last-updated">
-        Last Updated: 13-Apr-2025
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4">Sales Leaderboard</h1>
+        <p id="last-updated" class="text-sm text-gray-600 mb-4"></p>
+
+        <input id="searchInput" type="text" placeholder="Search by Name or Code" class="p-2 border w-full mb-4 rounded">
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white rounded">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4">RSM</th>
+                        <th class="py-2 px-4">DSM</th>
+                        <th class="py-2 px-4">Code</th>
+                        <th class="py-2 px-4">Name</th>
+                        <th class="py-2 px-4">Sales in Boxes</th>
+                        <th class="py-2 px-4">Remaining for Gift Voucher</th>
+                        <th class="py-2 px-4">Remaining for Fan</th>
+                        <th class="py-2 px-4">RX</th>
+                        <th class="py-2 px-4">RX Remaining for Gift Voucher</th>
+                        <th class="py-2 px-4">RX Remaining for Fan</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard" class="text-center"></tbody>
+            </table>
+        </div>
     </div>
 
     <script>
-        const data = [
-            {"Rank": 1, "Region": "P7", "DSM": "PQ", "Code": "PW3", "Name": "Mr. Md. Ariful Islam", "MTD_Qnty": 100, "Remaining_Gift_Voucher": 40, "Remaining_Fan": 80},
-            {"Rank": 2, "Region": "Q1", "DSM": "PI", "Code": "QA9", "Name": "Md. Amirul Islam", "MTD_Qnty": 82, "Remaining_Gift_Voucher": 58, "Remaining_Fan": 98},
-            {"Rank": 3, "Region": "P9", "DSM": "PL", "Code": "PF1", "Name": "Md. Rabbi Sikder", "MTD_Qnty": 70, "Remaining_Gift_Voucher": 70, "Remaining_Fan": 110},
-            {"Rank": 4, "Region": "P9", "DSM": "PL", "Code": "PJ7", "Name": "Abraham Lincoln", "MTD_Qnty": 68, "Remaining_Gift_Voucher": 72, "Remaining_Fan": 112},
-            {"Rank": 5, "Region": "P7", "DSM": "QO", "Code": "QH3", "Name": "Saruar Hossain", "MTD_Qnty": 67, "Remaining_Gift_Voucher": 73, "Remaining_Fan": 113}
-        ];
+        async function fetchData() {
+            const salesResponse = await fetch('sales.xlsx');
+            const rxResponse = await fetch('rx.xlsx');
 
-        const tbody = document.querySelector('#leaderboard tbody');
+            const salesData = await salesResponse.arrayBuffer();
+            const rxData = await rxResponse.arrayBuffer();
 
-        data.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${item.Rank}</td>
-                <td>${item.Region}</td>
-                <td>${item.DSM}</td>
-                <td>${item.Code}</td>
-                <td>${item.Name}</td>
-                <td>${item.MTD_Qnty}</td>
-                <td>${item.Remaining_Gift_Voucher}</td>
-                <td>${item.Remaining_Fan}</td>
-            `;
-            tbody.appendChild(row);
-        });
+            const salesWorkbook = XLSX.read(salesData);
+            const rxWorkbook = XLSX.read(rxData);
 
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toUpperCase();
-            const tr = document.querySelectorAll("#leaderboard tbody tr");
-            tr.forEach(row => {
-                const tdName = row.cells[4].textContent.toUpperCase();
-                const tdCode = row.cells[3].textContent.toUpperCase();
-                if (tdName.indexOf(filter) > -1 || tdCode.indexOf(filter) > -1) {
-                    row.style.display = "";
-                } else {
-                    row.style.display = "none";
-                }
+            const salesSheet = salesWorkbook.Sheets[salesWorkbook.SheetNames[0]];
+            const rxSheet = rxWorkbook.Sheets[rxWorkbook.SheetNames[0]];
+
+            let salesJson = XLSX.utils.sheet_to_json(salesSheet);
+            let rxJson = XLSX.utils.sheet_to_json(rxSheet);
+
+            // Remove rows where RSM (Region) is blank
+            salesJson = salesJson.filter(row => row['RSM'] && row['CODE']);
+
+            const rxMap = new Map();
+            rxJson.forEach(row => {
+                rxMap.set(row['PSO Code'], row['RX Count'] || 0);
+            });
+
+            const leaderboard = salesJson.map(row => {
+                const salesQty = row['MTD QNTY'] || 0;
+                const rxQty = rxMap.get(row['CODE']) || 0;
+                return {
+                    rsm: row['RSM'] || '',
+                    dsm: row['DSM'] || '',
+                    code: row['CODE'] || '',
+                    name: row['NAME'] || '',
+                    sales: Math.round(salesQty),
+                    salesGift: Math.max(140 - salesQty, 0),
+                    salesFan: Math.max(180 - salesQty, 0),
+                    rx: Math.round(rxQty),
+                    rxGift: Math.max(140 - rxQty, 0),
+                    rxFan: Math.max(180 - rxQty, 0)
+                };
+            });
+
+            leaderboard.sort((a, b) => b.sales - a.sales);
+
+            renderTable(leaderboard);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('leaderboard');
+            tbody.innerHTML = '';
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-2 px-4">${row.rsm}</td>
+                    <td class="py-2 px-4">${row.dsm}</td>
+                    <td class="py-2 px-4">${row.code}</td>
+                    <td class="py-2 px-4">${row.name}</td>
+                    <td class="py-2 px-4">${row.sales}</td>
+                    <td class="py-2 px-4">${row.salesGift}</td>
+                    <td class="py-2 px-4">${row.salesFan}</td>
+                    <td class="py-2 px-4">${row.rx}</td>
+                    <td class="py-2 px-4">${row.rxGift}</td>
+                    <td class="py-2 px-4">${row.rxFan}</td>
+                `;
+                tbody.appendChild(tr);
             });
         }
+
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#leaderboard tr');
+
+            rows.forEach(row => {
+                const name = row.children[3].textContent.toLowerCase();
+                const code = row.children[2].textContent.toLowerCase();
+                if (name.includes(searchTerm) || code.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+        document.getElementById('last-updated').innerText = `Last updated: ${new Date().toLocaleString()}`;
+
+        fetchData();
     </script>
 </body>
 </html>
